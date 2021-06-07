@@ -65,10 +65,19 @@ namespace project2
             MySqlDataReader Row = cmd.ExecuteReader();
             if (Row.HasRows)
             {
+                pickup f3 = new pickup();
+                MySqlConnection conn3 = databaseConnection();
+                conn3.Open();
+                MySqlCommand cmd2 = new MySqlCommand("SELECT Name from costomer where  Name = @ID", conn3);
+                cmd2.Parameters.AddWithValue("@ID",(textBox1.Text));
+                MySqlDataReader da = cmd2.ExecuteReader();
+                while (da.Read())
+                {
+                    f3.name = da.GetValue(0).ToString();
+                }
                 MessageBox.Show("เข้าสู่ระบบสำเร็จ");
-                Menu Form1  = new Menu();
                 this.Hide();
-                Form1.Show();
+                f3.Show();
             }
             else { MessageBox.Show("ชื่อผู้ใช้ หรือ รหัส ไม่ถูกต้อง"); }
             conn.Close();
@@ -81,6 +90,29 @@ namespace project2
             register2 f1 = new register2();
             this.Hide();
             f1.Show();
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            member Form1 = new member();
+            this.Hide();
+            Form1.Show();
+        }
+
+        private void textBox1_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (System.Text.Encoding.UTF8.GetByteCount(new char[] { e.KeyChar }) > 1)
+            {
+                e.Handled = true;
+            }
+        }
+
+        private void textBox2_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if ((e.KeyChar < 48 || e.KeyChar > 57) && (e.KeyChar != 8))
+            {
+                e.Handled = true;
+            }
         }
     }
 }
@@ -100,18 +132,10 @@ namespace project2
 {
     public partial class register2 : Form
     {
+        int X = 0;
         private void showdataGridView1()
         {
-            MySqlConnection conn = databaseConnection();
-            DataSet ds = new DataSet();
-            conn.Open();
-            MySqlCommand cmd;
-            cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT * FROM costomer";
-            MySqlDataAdapter adapter = new MySqlDataAdapter(cmd);
-            adapter.Fill(ds);
-            conn.Close();
-            dataGridView1.DataSource = ds.Tables[0].DefaultView;
+           
         }
         private MySqlConnection databaseConnection()
         {
@@ -132,57 +156,46 @@ namespace project2
         private void button1_Click(object sender, EventArgs e)
         {
             MySqlConnection conn = databaseConnection();
-            String sql = "INSERT INTO costomer (Name,PasswordC) VALUES('" + textBox1.Text + "' , '" + textBox2.Text + "')";
-            MySqlCommand cmd = new MySqlCommand(sql, conn);
             conn.Open();
-            int rows = cmd.ExecuteNonQuery();
-            conn.Close();
-            if(rows > 0)
+            MySqlCommand cmd;
+            cmd = conn.CreateCommand();
+            cmd.CommandText = $"SELECT*FROM costomer WHERE Name =\"{textBox1.Text}\"";
+            MySqlDataReader row = cmd.ExecuteReader();
+            if (row.HasRows)
             {
-                MessageBox.Show("Add data complete");
-                showdataGridView1();
+                MessageBox.Show("มีชื่อผู้ใช้นี้อยู่ในระบบอยู่แล้ว");
+                X = 2;
             }
-        }
+            if (X == 0)
+            {
+                MySqlConnection conn2 = databaseConnection();
+                String sql = "INSERT INTO costomer (Name,PasswordC) VALUES('" + textBox1.Text + "' , '" + textBox2.Text + "')";
+                MySqlCommand cmd2 = new MySqlCommand(sql, conn2);
+                conn2.Open();
+                int rows = cmd2.ExecuteNonQuery();
+                conn2.Close();
+                if (rows > 0);
 
+                {
+                    MessageBox.Show("Add data complete");
+                    showdataGridView1();
+                }
+            }
+            X = 0;
+        }
         private void dataGridView1_CellClick(object sender, DataGridViewCellEventArgs e)
         {
-            dataGridView1.CurrentRow.Selected = true;
-            textBox1.Text = dataGridView1.Rows[e.RowIndex].Cells["Name"].FormattedValue.ToString();
-            textBox2.Text = dataGridView1.Rows[e.RowIndex].Cells["PasswordC"].FormattedValue.ToString();
+            
         }
 
         private void button3_Click(object sender, EventArgs e)
         {
-            int selectedRow = dataGridView1.CurrentCell.RowIndex;
-            int deleteId = Convert.ToInt32(dataGridView1.Rows[selectedRow].Cells["id"].Value);
-            MySqlConnection conn = databaseConnection();
-            String sql = "DELETE FROM costomer WHERE id = '" + deleteId + "'";
-            MySqlCommand cmd = new MySqlCommand(sql, conn);
-            conn.Open();
-            int rows = cmd.ExecuteNonQuery();
-            conn.Close();
-            if (rows > 0)
-            {
-                MessageBox.Show("Delete data complete");
-                showdataGridView1();
-            }
+            
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
-            int selectedRow = dataGridView1.CurrentCell.RowIndex;
-            int editId = Convert.ToInt32(dataGridView1.Rows[selectedRow].Cells["id"].Value);
-            MySqlConnection conn = databaseConnection();
-            String sql = "UPDATE costomer SET Name = '" + textBox1.Text + "' , PasswordC = '" + textBox2.Text + "'WHERE id ='" + editId + "'";
-            MySqlCommand cmd = new MySqlCommand(sql, conn);
-            conn.Open();
-            int rows = cmd.ExecuteNonQuery();
-            conn.Close();
-            if (rows > 0)
-            {
-                MessageBox.Show("Edit data complete");
-                showdataGridView1();
-            }
+            
         }
 
         private void button4_Click(object sender, EventArgs e)
@@ -191,9 +204,14 @@ namespace project2
             this.Hide();
             register2.Show();
         }
+
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }
-#หน้าเมนู
+#หน้าล็อคอินเเอดมิน
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -203,37 +221,71 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using MySql.Data.MySqlClient;
 
 namespace project2
 {
-    public partial class Menu : Form
+    public partial class member : Form
     {
-        public Menu()
+        private MySqlConnection databaseConnection()
+        {
+            string connectionString = "datasource=127.0.0.1;port=3306;username=root;password=;database=project2;";
+            MySqlConnection conn = new MySqlConnection(connectionString);
+            return conn;
+        }
+        public member()
         {
             InitializeComponent();
         }
 
-        private void button2_Click(object sender, EventArgs e)
-        {
-            Form3 Menu = new Form3();
-            this.Hide();
-            Menu.Show();
-        }
-
         private void button1_Click(object sender, EventArgs e)
         {
-            shop Menu = new shop();
-            this.Hide();
-            Menu.Show();
+            MySqlConnection conn = databaseConnection();
+            conn.Open();
+
+            MySqlCommand cmd;
+
+            cmd = conn.CreateCommand();
+            cmd.CommandText = $"SELECT*FROM member WHERE 	M_name =\"{textBox1.Text}\" AND M_Password=\"{textBox2.Text}\"";
+
+            MySqlDataReader Row = cmd.ExecuteReader();
+            if (Row.HasRows)
+            {
+                MessageBox.Show("เข้าสู่ระบบสำเร็จ");
+                Form3 member = new Form3();
+                this.Hide();
+                member.Show();
+            }
+            else { MessageBox.Show("ชื่อผู้ใช้ หรือ รหัส ไม่ถูกต้อง"); }
+            conn.Close();
+
         }
 
-        private void Menu_Load(object sender, EventArgs e)
+        private void button2_Click(object sender, EventArgs e)
         {
+            register_M member = new register_M();
+            this.Hide();
+            member.Show();
+        }
 
+        private void textBox1_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (System.Text.Encoding.UTF8.GetByteCount(new char[] { e.KeyChar }) > 1)
+            {
+                e.Handled = true;
+            }
+        }
+
+        private void textBox2_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if ((e.KeyChar < 48 || e.KeyChar > 57) && (e.KeyChar != 8))
+            {
+                e.Handled = true;
+            }
         }
     }
 }
-#หน้าเพิ่มสินค้า
+#หน้าเพิ่มสินค้าเเละดูประวัติการซื้อ
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -262,6 +314,19 @@ namespace project2
             conn.Close();
             dataGridView1.DataSource = ds.Tables[0].DefaultView;
         }
+        private void showdataGridView2()
+        {
+            MySqlConnection conn = databaseConnection();
+            DataSet ds = new DataSet();
+            conn.Open();
+            MySqlCommand cmd;
+            cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT * FROM history2";
+            MySqlDataAdapter adapter = new MySqlDataAdapter(cmd);
+            adapter.Fill(ds);
+            conn.Close();
+            dataGridView2.DataSource = ds.Tables[0].DefaultView;
+        }
         private MySqlConnection databaseConnection()
         {
             string connectionString = "datasource=127.0.0.1;port=3306;username=root;password=;database=project2;";
@@ -277,6 +342,8 @@ namespace project2
         private void Form3_Load(object sender, EventArgs e)
         {
             showdataGridView1();
+            showdataGridView2();
+            panel1.Hide();
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -360,13 +427,139 @@ namespace project2
 
         private void button5_Click(object sender, EventArgs e)
         {
-            shop Form3 = new shop();
+            Form1 Form3 = new Form1();
             this.Hide();
             Form3.Show();
         }
+
+        private void textBox1_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if ((e.KeyChar < 48 || e.KeyChar > 57) && (e.KeyChar != 8))
+            {
+                e.Handled = true;
+            }
+        }
+
+        private void textBox2_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (System.Text.Encoding.UTF8.GetByteCount(new char[] { e.KeyChar }) > 1)
+            {
+                e.Handled = true;
+            }
+        }
+
+        private void textBox3_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if ((e.KeyChar < 48 || e.KeyChar > 57) && (e.KeyChar != 8))
+            {
+                e.Handled = true;
+            }
+        }
+
+        private void textBox4_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if ((e.KeyChar < 48 || e.KeyChar > 57) && (e.KeyChar != 8))
+            {
+                e.Handled = true;
+            }
+        }
+
+        private void label9_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void dataGridView2_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
+
+        private void panel1_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+
+        private void button7_Click(object sender, EventArgs e)
+        {
+            if (textBox5.Text != "")
+            {
+                MySqlConnection conn = databaseConnection();
+                DataSet ds = new DataSet();
+                conn.Open();
+                MySqlCommand cmd;
+                cmd = conn.CreateCommand();
+                cmd.CommandText = ($"SELECT*FROM history2 WHERE name2 =\"{textBox5.Text}\"");
+                MySqlDataAdapter adapter = new MySqlDataAdapter(cmd);
+                adapter.Fill(ds);
+                conn.Close();
+                dataGridView2.DataSource = ds.Tables[0].DefaultView;
+            }
+            else
+            {
+                showdataGridView2(); 
+            }
+        }
+
+        private void button9_Click(object sender, EventArgs e)
+        {
+            panel1.Hide();
+        }
+
+        private void button6_Click(object sender, EventArgs e)
+        {
+            panel1.Show();
+        }
     }
 }
-#หน้าซื้อสินค้า
+#หน้าเมนู
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace project2
+{
+    public partial class Menu : Form
+    {
+        public Menu()
+        {
+            InitializeComponent();
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            
+        }
+
+        private void Menu_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void pictureBox1_Click(object sender, EventArgs e)
+        {
+            
+        }
+
+        private void pictureBox1_Click_1(object sender, EventArgs e)
+        {
+            pickup Menu = new pickup();
+            this.Hide();
+            Menu.Show();
+        }
+    }
+}
+#หน้าซื้อขาย
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -380,7 +573,7 @@ using MySql.Data.MySqlClient;
 
 namespace project2
 {
-    public partial class shop : Form
+    public partial class pickup : Form
     {
         private void showdataGridView1()
         {
@@ -401,16 +594,14 @@ namespace project2
             MySqlConnection conn = new MySqlConnection(connectionString);
             return conn;
         }
-
-
-        public shop()
+        public pickup()
         {
             InitializeComponent();
         }
 
-        private void shop_Load(object sender, EventArgs e)
+        private void button2_Click(object sender, EventArgs e)
         {
-            showdataGridView1();
+          
         }
 
         private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
@@ -422,6 +613,15 @@ namespace project2
             textBox2.Text = dataGridView1.Rows[e.RowIndex].Cells["P_Name"].FormattedValue.ToString();
             textBox3.Text = dataGridView1.Rows[e.RowIndex].Cells["Price"].FormattedValue.ToString();
         }
+
+        private void pickup_Load(object sender, EventArgs e)
+        {
+            showdataGridView1();
+            panel1.Hide();
+            timer1.Start();
+        }
+        public string name;
+
         String mm;
         int mn = 0;
 
@@ -429,28 +629,133 @@ namespace project2
         int mk = 0;
         int ml = 0;
 
-        private void button2_Click(object sender, EventArgs e)
+        int sumbt = 0;
+
+        int total = 0;
+        int sub = 0;
+
+        String price;
+        String menu;
+        private void button1_Click(object sender, EventArgs e)
         {
             mm = ($"{textBox3.Text}");
             int mb = int.Parse(mm);
             textBox4.Clear();
             mn = mb + mn;
-            textBox4.SelectedText =($"{mn}");
+            textBox4.SelectedText = ($"{mn}");
+            total = mn;
             richTextBox2.SelectedText = ($"{textBox2.Text}\n");
             richTextBox3.SelectedText = ($"{textBox3.Text}\n");
+            sumbt += 1;
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void pictureBox2_Click(object sender, EventArgs e)
         {
-            mv = ($"{textBox5.Text}");
-            int mk = int.Parse(mv);
-            ml = mk - mn;
-            textBox6.SelectedText = ($"{ml}");
+            panel1.Show();
+        }
+
+        private void pictureBox3_Click(object sender, EventArgs e)
+        {
+            panel1.Hide();
         }
 
         private void button3_Click(object sender, EventArgs e)
         {
-            Application.Exit();
+            mv = ($"{textBox5.Text}");
+            int mk = int.Parse(mv);
+            sub = mk;
+            if (mk >= mn)
+            {
+                ml = mk - mn;
+                MessageBox.Show($"เงินทอน {ml}");
+                mn = 0;
+                
+            }
+            if (mk < mn)
+            {
+                MessageBox.Show("จำนวนเงินไม่เพียงพอ");
+            }
+            MySqlConnection conn = databaseConnection();
+            String sql = "INSERT INTO history2 ( name2,product2,total,Date,time) VALUES('" + name + "','" + richTextBox2.Text + "','" + textBox4.Text + "','" + label7.Text + "','" + label6.Text + "')";
+            MySqlCommand cmd = new MySqlCommand(sql, conn);
+            conn.Open();
+            int rows = cmd.ExecuteNonQuery();
+            conn.Close();
+            price = richTextBox2.Text;
+            menu = richTextBox3.Text;
+
+            richTextBox2.Clear();
+            richTextBox3.Clear();
+
+            mk = 0;
+            textBox5.Clear();
+            textBox4.Clear();
+            MessageBox.Show("Thank You");
+            printPreviewDialog1.Document = printDocument1;
+            printPreviewDialog1.ShowDialog();
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            richTextBox2.Clear();
+            richTextBox3.Clear();
+            mn = 0;
+            textBox4.Clear();
+            textBox5.Clear();
+        }
+
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            label6.Text = DateTime.Now.ToLongTimeString();
+            label7.Text = DateTime.Now.ToLongDateString();
+        }
+
+        private void textBox5_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if ((e.KeyChar < 48 || e.KeyChar > 57) && (e.KeyChar != 8))
+            {
+                e.Handled = true;
+            }
+        }
+
+        private void label6_Click(object sender, EventArgs e)
+        {
+
+        }
+        List<Bill> allbill = new List<Bill>();
+        private void printDocument1_PrintPage(object sender, System.Drawing.Printing.PrintPageEventArgs e)
+        {
+
+            e.Graphics.DrawString("Bill", new Font("Footlight MT Light", 24, FontStyle.Bold), Brushes.LightCoral, new Point(50, 30));
+            e.Graphics.DrawString("Perfume of Alya", new Font("Script MT Bold", 26, FontStyle.Bold), Brushes.LightPink, new Point(50, 90));
+            e.Graphics.DrawString("Date " + System.DateTime.Now.ToString("dd/MM/yyyy HH : mm : ss น."), new Font("Footlight MT Light", 14, FontStyle.Regular), Brushes.RosyBrown, new PointF(500, 150));
+            e.Graphics.DrawString("-----------------------------------------------------------------------------", new Font("Footlight MT Light", 16, FontStyle.Regular), Brushes.Maroon, new Point(80, 190));
+            e.Graphics.DrawString(" ITEM                                                         PRICE(Bath)", new Font("Footlight MT Light", 20 , FontStyle.Regular), Brushes.PaleVioletRed, new Point(130, 220));
+            e.Graphics.DrawString("-----------------------------------------------------------------------------", new Font("Footlight MT Light", 16, FontStyle.Regular), Brushes.Maroon, new Point(80, 250));
+            int y = 320;
+            int number = 1;
+            int i = 0;
+            e.Graphics.DrawString("" + price, new Font("Footlight MT Light", 16, FontStyle.Regular), Brushes.PaleVioletRed, new PointF(80, 280));
+            e.Graphics.DrawString("" + menu, new Font("Footlight MT Light", 16, FontStyle.Regular), Brushes.PaleVioletRed, new PointF(650, 280));
+
+            for (i = 0; i < sumbt; i += 1)
+            {
+                y = y + 23;
+            }
+
+            number = number + 1;
+            {
+                e.Graphics.DrawString("-----------------------------------------------------------------------------", new Font("Footlight MT Light", 16, FontStyle.Regular), Brushes.Maroon, new Point(80, y + 20));
+                e.Graphics.DrawString("SUBTOTAL        " + total.ToString() + " Bath", new Font("Footlight MT Light", 16, FontStyle.Regular), Brushes.PaleVioletRed, new Point(500, (y + 30) + 45));
+                e.Graphics.DrawString("CUSTOMER        " + name.ToString(), new Font("Footlight MT Light", 16, FontStyle.Bold), Brushes.PaleVioletRed, new Point(80, (y + 30) + 45));
+                e.Graphics.DrawString("GET IT          " + sub + " Bath", new Font("Footlight MT Light", 16, FontStyle.Regular), Brushes.PaleVioletRed, new Point(500, ((y + 30) + 45) + 45));
+                e.Graphics.DrawString("CHANCE          " + ml + " Bath", new Font("Footlight MT Light", 16, FontStyle.Regular), Brushes.PaleVioletRed, new Point(500, (((y + 30) + 45) + 45) + 45));
+                
+
+            }
+            total = 0;
+            sumbt = 0;
+
         }
     }
 }
